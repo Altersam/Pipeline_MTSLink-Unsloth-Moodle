@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline MTS Link → Unsloth → Moodle</title>
+<style>
+:root{
+  --bg:#07101f;--panel:#0f1b31;--panel2:#14233e;--text:#edf5ff;--muted:#9db1cf;
+  --blue:#4f8cff;--cyan:#35d6e8;--green:#37d28b;--amber:#ffbd59;--red:#ff6b6b;
+  --border:#243858;--code:#091426
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,#07101f,#091528 60%,#07101f);color:var(--text);font:16px/1.65 Inter,Segoe UI,Arial,sans-serif}
+a{color:#77b5ff}
+.wrap{max-width:1220px;margin:auto;padding:24px}
+.hero{padding:44px 36px;border:1px solid var(--border);border-radius:24px;background:radial-gradient(circle at 85% 10%,rgba(53,214,232,.18),transparent 28%),linear-gradient(135deg,#122645,#0d1730)}
+.hero h1{font-size:clamp(30px,5vw,56px);line-height:1.05;margin:0 0 14px}
+.hero p{font-size:19px;color:#c5d4eb;max-width:900px}
+.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.badge{padding:8px 12px;border-radius:999px;background:#0b1930;border:1px solid #294465;color:#cbe5ff}
+nav{position:sticky;top:0;z-index:5;margin:18px 0;padding:12px 16px;border:1px solid var(--border);background:rgba(7,16,31,.92);backdrop-filter:blur(12px);border-radius:16px}
+nav a{display:inline-block;margin:5px 12px 5px 0;text-decoration:none}
+section{margin:26px 0;padding:26px;border:1px solid var(--border);background:linear-gradient(180deg,var(--panel),#0b172b);border-radius:20px}
+h2{font-size:30px;margin-top:0}
+h3{font-size:21px;color:#dfeeff;margin-top:28px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{border:1px solid var(--border);background:var(--panel2);border-radius:16px;padding:18px}
+.card strong{color:white}
+.step{display:flex;gap:14px;align-items:flex-start;margin:12px 0;padding:14px;border-left:4px solid var(--blue);background:#0b1729;border-radius:10px}
+.num{min-width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--blue);font-weight:800}
+code,kbd{font-family:Consolas,monospace}
+pre{white-space:pre-wrap;overflow:auto;background:var(--code);border:1px solid #203454;padding:16px;border-radius:13px;color:#dbeaff}
+table{width:100%;border-collapse:collapse;display:block;overflow:auto}
+th,td{border-bottom:1px solid var(--border);padding:11px 12px;text-align:left;vertical-align:top}
+th{color:#b9d7ff;background:#0d1b32}
+.ok{color:#69e3a6}.warn{color:#ffd27d}.bad{color:#ff8b8b}
+.pipeline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0}
+.pipe{padding:10px 13px;border:1px solid #2d4a74;border-radius:12px;background:#10223e;font-weight:700}
+.arrow{color:var(--cyan);font-size:25px}
+.shot{display:block;width:100%;border:1px solid #355078;border-radius:16px;background:#050a12}
+.caption{color:var(--muted);font-size:14px;margin:7px 0 18px}
+.callout{padding:15px 17px;border-radius:13px;background:#132541;border:1px solid #2b4a74}
+.callout.green{border-color:#287e5b;background:#0e2b27}
+.callout.amber{border-color:#8d672c;background:#2a2112}
+.footer{color:var(--muted);text-align:center;padding:35px}
+.small{font-size:14px;color:var(--muted)}
+.tree{font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="small">Pipeline_MTSLink-Unsloth-Moodle</div>
+  <h1>MTS Link → LFU → Unsloth → Moodle</h1>
+  <p>Полный файловый и агентный конвейер: получить запись, расшифровку и материалы занятия, превратить их локальной моделью в полноценный Moodle-safe HTML, проверить и автоматически перейти к следующему уроку.</p>
+  <div class="badges">
+    <span class="badge">MoodleWorker v0.5</span>
+    <span class="badge">Windows x64</span>
+    <span class="badge">Unsloth Studio</span>
+    <span class="badge">Non-stop pipeline</span>
+    <span class="badge">Moodle/WAF safe</span>
+  </div>
+</header>
+
+<nav>
+<a href="#overview">Обзор</a>
+<a href="#folder">Файлы</a>
+<a href="#lfu">LFU</a>
+<a href="#unsloth">Unsloth</a>
+<a href="#worker">MoodleWorker</a>
+<a href="#pipeline">Pipeline</a>
+<a href="#moodle">Moodle</a>
+<a href="#build">Сборка</a>
+<a href="#trouble">Ошибки</a>
+<a href="#security">Безопасность</a>
+</nav>
+
+<section id="overview">
+<h2>1. Что делает система</h2>
+<div class="pipeline">
+<span class="pipe">MTS Link</span><span class="arrow">→</span>
+<span class="pipe">LFU Online Hub</span><span class="arrow">→</span>
+<span class="pipe">Расшифровка / Запись / files</span><span class="arrow">→</span>
+<span class="pipe">MoodleWorker</span><span class="arrow">→</span>
+<span class="pipe">Unsloth Studio</span><span class="arrow">→</span>
+<span class="pipe">lesson.html</span><span class="arrow">→</span>
+<span class="pipe">QA / FIX</span><span class="arrow">→</span>
+<span class="pipe">Moodle</span>
+</div>
+<div class="grid">
+ <div class="card"><strong>LFU</strong><br>Забирает материалы MTS Link и формирует чистую папку урока.</div>
+ <div class="card"><strong>MoodleWorker</strong><br>Управляет очередью, контекстом, watchdog, файлами и восстановлением.</div>
+ <div class="card"><strong>Unsloth</strong><br>Понимает тему, пишет теорию, примеры, SVG, таблицы и Moodle HTML.</div>
+ <div class="card"><strong>Moodle</strong><br>Получает уже проверенный HTML-фрагмент без JavaScript.</div>
+</div>
+</section>
+
+<section id="folder">
+<h2>2. Как должна выглядеть папка</h2>
+<p>MoodleWorker выбирает именно родительский каталог <code>уроки</code>. Внутри — только непосредственные папки уроков с числовыми префиксами.</p>
+<pre class="tree">output/
+└── 2026-10-03/
+    └── уроки/
+        ├── 00_09_00_10А_Литература/
+        │   ├── Расшифровка.txt
+        │   ├── Запись.txt
+        │   └── files/
+        ├── 01_10_00_10А_Физика/
+        │   ├── Расшифровка.txt
+        │   ├── Запись.txt
+        │   └── files/
+        └── ...</pre>
+<img class="shot" src="assets/screenshots/lesson-folder-input.png" alt="Папка урока">
+<div class="caption">Минимальный вход: Расшифровка.txt, Запись.txt и при наличии files/.</div>
+
+<h3>Расшифровка.txt</h3>
+<p>Главный источник предмета и фактической темы. Если файл отсутствует или пуст, worker не должен выдумывать урок.</p>
+
+<h3>Запись.txt</h3>
+<p>Реальная ссылка/ссылки записи MTS Link. Worker никогда не создаёт URL сам.</p>
+
+<h3>files/</h3>
+<p>Вложения преподавателя: DOCX, PPTX, XLSX, PDF, изображения, TXT, HTML и другие полезные материалы.</p>
+</section>
+
+<section id="lfu">
+<h2>3. LFU Online Hub v2.6</h2>
+<p>LFU — upstream-часть. Начиная с v2.6 папка урока очищена от лишнего технического сырья.</p>
+<div class="grid">
+<div class="card"><strong>Запись.txt</strong><br>Одна/несколько ссылок. Основной источник — записи текущей EventSession.</div>
+<div class="card"><strong>Расшифровка.txt</strong><br>Полный опубликованный transcript в формате «время — участник — текст».</div>
+<div class="card"><strong>files/</strong><br>Оригинальные attachments EventSession/Event, без повторных дубликатов.</div>
+</div>
+<p>Технические JSON посещаемости могут храниться отдельно в <code>посещаемость/_сырье</code>, но не должны смешиваться с учебным пакетом.</p>
+<div class="callout amber"><strong>Секреты LFU.</strong> Не публикуйте <code>API.txt</code>. Он может содержать MTS token, Eljur devkey и логины/пароли.</div>
+</section>
+
+<section id="unsloth">
+<h2>4. Настройка Unsloth Studio</h2>
+<p>Для рабочего LAN-примера текущая Studio доступна по адресу:</p>
+<pre>http://192.168.1.12:8888</pre>
+<p>На другой машине используйте её реальный IP/порт.</p>
+
+<div class="step"><div class="num">1</div><div><strong>Запустите Studio.</strong><pre>unsloth studio -H 0.0.0.0 -p 8888</pre></div></div>
+<div class="step"><div class="num">2</div><div><strong>Проверьте страницу login.</strong><br><code>http://IP:8888/login</code></div></div>
+<div class="step"><div class="num">3</div><div><strong>Если пароль потерян:</strong><pre>unsloth studio reset-password</pre></div></div>
+<div class="step"><div class="num">4</div><div><strong>Для LAN:</strong> включите <code>Settings → API keys → LAN access</code>.</div></div>
+
+<h3>Как авторизуется MoodleWorker</h3>
+<pre>POST /api/auth/login
+{"username":"unsloth","password":"..."}
+
+→ access_token
+
+GET  /v1/models
+POST /v1/chat/completions
+Authorization: Bearer &lt;access_token&gt;</pre>
+<p>При <code>401</code> v0.5 автоматически получает новый JWT.</p>
+</section>
+
+<section id="worker">
+<h2>5. Настройка MoodleWorker</h2>
+<img class="shot" src="assets/screenshots/moodleworker-running.png" alt="MoodleWorker v0.5">
+<div class="caption">Рабочая v0.5: online Unsloth, этап BUILD, очередь уроков и watchdog.</div>
+
+<table>
+<thead><tr><th>Поле</th><th>Что вводить</th></tr></thead>
+<tbody>
+<tr><td>Папка уроков</td><td>Путь до каталога <code>.../уроки</code></td></tr>
+<tr><td>Skill .md</td><td>Пусто — используется встроенный v2.3</td></tr>
+<tr><td>Prompt .md</td><td>Пусто — используется встроенный v2.3</td></tr>
+<tr><td>Unsloth Studio URL</td><td><code>http://IP:8888</code></td></tr>
+<tr><td>Studio пользователь</td><td><code>unsloth</code></td></tr>
+<tr><td>Studio пароль</td><td>Пароль страницы Studio login</td></tr>
+<tr><td>API Base URL</td><td>Пусто</td></tr>
+<tr><td>Model ID</td><td>Пусто — авто через <code>/v1/models</code></td></tr>
+<tr><td>API key</td><td>Пусто при входе по паролю Studio</td></tr>
+<tr><td>Команда запуска Unsloth</td><td>Пусто, если Studio запускается отдельно</td></tr>
+</tbody>
+</table>
+
+<p class="callout green"><strong>Правильная последовательность:</strong> Сохранить настройки → Починить подключение → дождаться <span class="ok">Unsloth: online</span> → Старт.</p>
+</section>
+
+<section id="pipeline">
+<h2>6. Почему worker не «забывает продолжить»</h2>
+<div class="pipeline">
+<span class="pipe">INGEST</span><span class="arrow">→</span>
+<span class="pipe">EXTRACT</span><span class="arrow">→</span>
+<span class="pipe">PLAN</span><span class="arrow">→</span>
+<span class="pipe">BUILD</span><span class="arrow">→</span>
+<span class="pipe">READ_BACK</span><span class="arrow">→</span>
+<span class="pipe">QA</span><span class="arrow">→</span>
+<span class="pipe">FIX</span><span class="arrow">→</span>
+<span class="pipe">COMMIT</span><span class="arrow">→</span>
+<span class="pipe">RESET</span><span class="arrow">→</span>
+<span class="pipe">NEXT</span>
+</div>
+<p>Модель не управляет циклом. Циклом управляет приложение.</p>
+<div class="grid">
+<div class="card"><strong>EXTRACT</strong><br>Сырая расшифровка → компактный <code>lesson_context.json</code>.</div>
+<div class="card"><strong>PLAN</strong><br>Компактная память → <code>lesson_plan.json</code>.</div>
+<div class="card"><strong>BUILD</strong><br>Новый API-запрос без полной старой истории → HTML.</div>
+<div class="card"><strong>QA/FIX</strong><br>Новый запрос + локальный validator.</div>
+</div>
+<p>Следующий урок начинается отдельным набором сообщений. Поэтому длинная история 17–27 уроков не растёт бесконечно.</p>
+</section>
+
+<section id="moodle">
+<h2>7. Что получается и что загружать в Moodle</h2>
+<p>В папке урока после успешного цикла:</p>
+<pre>lesson_context.json
+lesson_plan.json
+lesson.html
+lesson_build_report.json</pre>
+<p>Если <code>lesson.html</code> уже был, создаётся улучшенная версия <code>lesson_improved.html</code>, затем <code>lesson_improved_2.html</code> и т.д.</p>
+
+<h3>В Moodle нужен именно HTML-фрагмент</h3>
+<p>Откройте нужный ресурс/страницу/описание в Moodle, переключитесь в HTML/source-режим редактора и вставьте содержимое готового HTML-файла. Конкретное название кнопки зависит от установленного редактора Moodle и прав пользователя.</p>
+
+<h3>Проверенный WAF-safe профиль</h3>
+<div class="grid">
+<div class="card"><span class="ok">Разрешено</span><br>inline CSS, table, pre/code, details/summary, статический SVG, простой iframe записи.</div>
+<div class="card"><span class="bad">Запрещено</span><br>script, javascript:, onclick/onload/onerror, srcdoc, object/embed, активный SVG, локальные пути.</div>
+</div>
+</section>
+
+<section id="build">
+<h2>8. Сборка из исходников</h2>
+<p>MoodleWorker написан на Go и не требует сторонних Go-модулей.</p>
+<pre>cd apps/MoodleWorker
+
+set GOOS=windows
+set GOARCH=amd64
+set CGO_ENABLED=0
+
+go build -trimpath -ldflags="-s -w -H=windowsgui" -o dist\MoodleWorker.exe .</pre>
+<p>Также доступны <code>build_windows.bat</code>, <code>build_windows.ps1</code> и GitHub Actions.</p>
+
+<h3>GitHub Actions</h3>
+<ul>
+<li><code>build-windows.yml</code> — build artifact;</li>
+<li><code>release.yml</code> — Release при теге <code>moodleworker-v*</code>;</li>
+<li><code>pages.yml</code> — публикация этой документации в GitHub Pages.</li>
+</ul>
+</section>
+
+<section id="trouble">
+<h2>9. Типовые ошибки</h2>
+<h3>HTTP 404 API endpoint not found</h3>
+<p>Проверьте OpenAI-compatible prefix <code>/v1</code>. В v0.5 проще оставить API Base URL пустым.</p>
+
+<h3>HTTP 401 Invalid or expired API key</h3>
+<p>Нажмите <strong>Починить подключение</strong>. Старый API key/JWT будет заменён входом через Studio password.</p>
+
+<h3>trycloudflare URL</h3>
+<p>Не используйте старый временный Quick Tunnel, если Studio доступна по LAN.</p>
+
+<h3>needs_review</h3>
+<p>Откройте <code>lesson_build_report.json</code>. После устранения причины используйте кнопку возврата failed/needs_review в очередь.</p>
+
+<h3>Контекст / RAM / VRAM</h3>
+<p>Worker уже разделяет урок на stateless stages. Поэтому нет необходимости держать один гигантский chat-context на весь день.</p>
+</section>
+
+<section id="security">
+<h2>10. Безопасность</h2>
+<div class="callout amber">
+<strong>Никогда не публикуйте в GitHub:</strong>
+API.txt, MTS token, ЭлЖур credentials, Studio password, API keys/JWT, реальные student emails/eljurID, приватные записи и расшифровки.
+</div>
+<p>Локальные настройки MoodleWorker лежат в <code>%APPDATA%\MoodleWorker\settings.json</code>. Этот файл не должен попадать в репозиторий.</p>
+</section>
+
+<div class="footer">
+Pipeline_MTSLink-Unsloth-Moodle · MoodleWorker v0.5 · документация для локального образовательного конвейера
+</div>
+</div>
+</body>
+</html>
